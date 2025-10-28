@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql/dev/products.sql:/docker-entrypoint-initdb.d/products.sql
+    # No se expone el puerto 3306
+  app:
+    # No se monta código fuente local
