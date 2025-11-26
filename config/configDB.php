@@ -1,42 +1,54 @@
 <?php
-
 class configDB {
+    private static PDO $instance;
+    private static string $host;
+    private static string $user;
+    private static string $pass;
 
-     private static PDO $instance;
-     private static $host;
-     private static $user;
-     private static $pass;
-
-
-     public function __construct(){
-        //Compruebo si esta inicilizado
-        if(!isset(self::$instance)){
-            //recuperar los valores del .ini
+    public function __construct() {
+        if (!isset(self::$instance)) {
             $this->getValues();
-
-            //Crear la conexion
             $this->connect();
         }
-     }
+    }
 
-     private function connect(){
-        self::$instance = new PDO(self::$host,self::$user,self::$pass);
-     }
+    private function connect() {
+        // Opciones recomendadas para MariaDB/SkySQL
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false, // SkySQL usa Let’s Encrypt
+        ];
 
-     private function getValues(){
-        $conf =  parse_ini_file('config.ini');
-        self::$host = $conf['host'];
-        self::$user = $conf['user'];
-        self::$pass = $conf['pass'];
-     }
+        self::$instance = new PDO(self::$host, self::$user, self::$pass, $options);
+    }
 
-     /**
-      * Get the value of instance
-      */ 
-     public function getInstance()
-     {
-          return self::$instance;
-     }
+    private function getValues() {
+        // SI ESTAMOS EN RENDER → usamos variables de entorno
+        if (getenv('DB_HOST')) {
+            $host = getenv('DB_HOST');
+            $port = getenv('DB_PORT') ?: '3306';
+            $name = getenv('DB_NAME');
+            $user = getenv('DB_USER');
+            $pass = getenv('DB_PASS');
+
+            // DSN con SSL forzado (obligatorio en SkySQL serverless)
+            self::$host = "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4;sslmode=require";
+            self::$user = $user;
+            self::$pass = $pass;
+
+        } else {
+            // EN LOCAL → seguimos usando config.ini como siempre
+            $conf = parse_ini_file('config.ini');
+            self::$host = $conf['host'];
+            self::$user = $conf['user'];
+            self::$pass = $conf['pass'];
+        }
+    }
+
+    public function getInstance(): PDO {
+        return self::$instance;
+    }
 }
-
 ?>
