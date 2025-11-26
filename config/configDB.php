@@ -1,4 +1,6 @@
 <?php
+
+use  Cgarcher\Fix\Database\PDO;
 class configDB {
     private static PDO $instance;
     private static string $host;
